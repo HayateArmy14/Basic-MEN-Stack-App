@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
@@ -7,6 +9,7 @@ const passport = require("passport");
 const User = require("./models/user");
 const session = require("express-session")
 const mongoose = require("mongoose")
+const methodOverride = require("method-override")
 
 //require Routes
 const indexRouter = require('./routes/index');
@@ -28,12 +31,13 @@ db.once('open', function() {
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-
+ 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(methodOverride("_method"))
 
 //Configure Passport and Sessions
 app.use(session({
@@ -41,6 +45,8 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
 }))
+app.use(passport.initialize());
+app.use(passport.session());
 
 passport.use(User.createStrategy());
 
