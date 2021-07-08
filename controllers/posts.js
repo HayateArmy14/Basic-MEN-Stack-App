@@ -1,17 +1,16 @@
 const Post = require("../models/post")
-const cloudinary = require("cloudinary")
-
-cloudinary.config({
-    cloud_name: "dbetljphk",
-    api_key: "522894463171735",
-    api_secret: process.env.CLOUDINARY_SECRET
-})
+const {cloudinary} = require("../cloudinary")
 
 module.exports = {
     //POSTS Index
     async postIndex(req, res, next) {
-        let posts = await Post.find({})
-        res.render("posts/index", {posts})
+        let posts = await Post.paginate({}, {
+			page: req.query.page || 1,
+			limit: 10
+		})
+		//turn the result from string to number
+		posts.page = Number(posts.page)
+        res.render("posts/index", {posts, title:"Posts Index"})
     },
 
     //POSTS New
@@ -23,44 +22,52 @@ module.exports = {
     async postCreate(req, res, next) {
         req.body.post.images = []
         for (const file of req.files) {
-          let image =  await cloudinary.v2.uploader.upload(file.path)
           req.body.post.images.push({
-              url: image.secure_url,
-              public_id: image.public_id
+              path: file.path,
+              filename: file.filename
           })
         }
+		req.body.post.author = req.user._id;
         let post = await Post.create(req.body.post);
+		req.session.success = "Post created Successfully"
         res.redirect(`/posts/${post.id}`)
     },
 
     //Posts show 
     async postShow(req, res, next) {
-        let post = await Post.findById(req.params.id)
-        res.render("posts/show", {post})
+        let post = await Post.findById(req.params.id).populate({
+			path:"reviews",
+			options: {sort: { "_id": -1 }},
+			populate: {
+				path: "author",
+				model: "User"
+			}
+		});
+		const floorRating = post.calculateAvgRating();
+        res.render("posts/show", {post, floorRating})
     },
 
     //Post edit
 
     async postEdit(req, res, next) {
-        let post = await Post.findById(req.params.id);
-        res.render("posts/edit", {post})
+        res.render("posts/edit")
     },
 
     //Posts Update 
     async postUpdate(req, res, next) {
 		// destructure post from res.locals
-		let post = await Post.findById(req.params.id)
+		const {post} = res.locals;
 		// check if there's any images for deletion
 		if(req.body.deleteImages && req.body.deleteImages.length) {	
 			// assign deleteImages from req.body to its own variable
 			let deleteImages = req.body.deleteImages;
 			// loop over deleteImages
-			for(const public_id of deleteImages) {
+			for(const filename of deleteImages) {
 				// delete images from cloudinary
-				await cloudinary.v2.uploader.destroy(public_id);
+				await cloudinary.uploader.destroy(filename);
 				// delete image from post.images
 				for(const image of post.images) {
-					if(image.public_id === public_id) {
+					if(image.filename === filename) {
 						let index = post.images.indexOf(image);
 						post.images.splice(index, 1);
 					}
@@ -70,10 +77,9 @@ module.exports = {
 		
 		if(req.files) {
 			for(const file of req.files){
-				let image = await cloudinary.v2.uploader.upload(file.path);
 				post.images.push({
-					url: image.secure_url,
-					public_id: image.public_id
+					path: file.path,
+					filename: file.filename
 				})
 			}
 		}
@@ -86,19 +92,14 @@ module.exports = {
 		// redirect to show page
 		res.redirect(`/posts/${post.id}`);
 	},
-
-    //Posts Destroy 
-    // async postDestroy(req, res, next) {
-    //     await Post.findByIdAndRemove(req.params.id);
-    //     res.redirect("/posts")
-    // }
     async postDestroy(req, res, next) {
 
-		let post = await Post.findById(req.params.id);
+		const {post} = res.locals;
 		for(const image of post.images) {
-			await cloudinary.v2.uploader.destroy(image.public_id)
+			await cloudinary.uploader.destroy(image.filename)
 		}
 		await post.remove();
+		req.session.success = "Post deleted Succesfully"
 		res.redirect("/posts")
 	}
 }

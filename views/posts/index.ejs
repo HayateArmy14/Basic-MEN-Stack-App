@@ -1,15 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+<% layout("layouts/boilerplate") -%> 
+
     <h1>POST Index</h1>
 
-    <% posts.forEach( function(post) { %> 
+    <% include ../partials/paginate-post %> 
+    <!-- post.docs for pagination -->
+    <% posts.docs.forEach( function(post) { %> 
     <div>
         <h2><%= post.title %> </h2>
         <div>Price: <%= post.price %> </div>
@@ -18,5 +13,4 @@
         <div><a href="/posts/<%= post.id %>">View More</a></div>
     </div>
 <% }) %> 
-</body>
-</html>
+<% include ../partials/paginate-post %> 

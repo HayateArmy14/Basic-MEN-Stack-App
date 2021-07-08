@@ -1,30 +1,30 @@
 const express = require('express');
 const { authenticate } = require('passport');
 const router = express.Router();
-const { postRegister, postLogin, getLogout } = require("../controllers/index")
+const {
+   getRegister, 
+   postRegister,
+   getLogin,
+   postLogin, 
+   getLogout 
+  } = require("../controllers/index")
 const {asyncErrorHandler} = require("../middleware/index");
 const { rawListeners } = require('../models/user');
 
 /* GET home page. */
-router.get('/', (req, res, next) => {
-  res.render('index', { title: 'Surf Shop - Home' });
-});
+router.get('/', getRegister);
 
 /* GET /register. */
-router.get('/register', (req, res, next) => {
-  res.send('GET /register');
-});
+router.get('/register', getRegister);
 
 /* POST /register. */
-router.post('/register', asyncErrorHandler(postRegister));
+router.post('/register',  asyncErrorHandler(postRegister));
 
 /* GET /login. */
-router.get('/login', (req, res, next) => {
-  res.send('GET /login');
-});
+router.get('/login', getLogin);
 
 /* POST /login. */
-router.post('/login', postLogin);
+router.post('/login', asyncErrorHandler(postLogin));
 
 //GET /logout
 router.get("/logout", getLogout)
